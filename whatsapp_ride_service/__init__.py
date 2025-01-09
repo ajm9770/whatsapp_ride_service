@@ -1,34 +1,47 @@
-"""WhatsApp Ride Service Application"""
+"""WhatsApp Ride Service application package."""
 
 from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+
 from .models import Base
 
-def create_app(config_object=None):
-    app = Flask(__name__)
-    
-    # Load config
-    if config_object:
-        app.config.from_object(config_object)
-    
+
+def create_app(config_name="development"):
+    """Create and configure the Flask application.
+
+    Args:
+        config_name: The name of the configuration to use.
+
+    Returns:
+        The configured Flask application.
+    """
+    app = Flask("whatsapp_ride_service")
+
+    # Load config based on environment
+    if config_name == "testing":
+        app.config.from_object("tests.config.TestingConfig")
+    else:
+        app.config.from_object("whatsapp_ride_service.config.DevelopmentConfig")
+
     # Initialize database
-    engine = create_engine(app.config.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///whatsapp_ride.db'))
+    engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
     Base.metadata.create_all(engine)
-    
-    # Create scoped session
-    session_factory = sessionmaker(bind=engine)
-    Session = scoped_session(session_factory)
-    app.db_session = Session
-    
+    Session = sessionmaker(bind=engine)
+    app.db_session = scoped_session(Session)
+
+    # Register blueprints
+    from .routes.auth_routes import auth_bp
+    from .routes.user_routes import user_bp
+    from .routes.ride_routes import ride_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(ride_bp)
+
     @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        Session.remove()
-    
-    # Register routes
-    from .routes import auth_routes, user_routes, ride_routes
-    app.register_blueprint(auth_routes.bp)
-    app.register_blueprint(user_routes.bp)
-    app.register_blueprint(ride_routes.bp)
-    
+    def cleanup(resp_or_exc):
+        """Clean up database session."""
+        app.db_session.close()
+
     return app
