@@ -3,7 +3,7 @@ from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, Driver, Ride, User, Payment
+from .models import Base, Driver, Ride, User, Payment
 from datetime import datetime
 import config
 from geopy.distance import geodesic

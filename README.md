@@ -1,106 +1,130 @@
 # WhatsApp Ride Service
 
-A ride-hailing service that operates through WhatsApp, connecting passengers with nearby drivers.
+A ride-hailing service that operates through WhatsApp, making it accessible to users without smartphones or dedicated apps.
 
 ## Features
 
-- Request rides through WhatsApp messages
-- Automatic driver matching based on proximity
-- Real-time notifications for both drivers and passengers
-- User authentication and account management
-- Secure payment processing with Stripe
-- Simple coordinate-based location system
-- SQLite database for storing ride and driver information
+- User registration and authentication via WhatsApp
+- Ride booking and status tracking
+- Real-time driver location updates
+- Secure payment processing
+- Rating system for both drivers and passengers
 
-## Setup
+## Prerequisites
 
-1. Install dependencies:
+- Python 3.9+
+- SQLite
+- Twilio account for WhatsApp integration
+- Stripe account for payment processing
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/whatsapp_ride_service.git
+cd whatsapp_ride_service
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Create a `.env` file with your credentials:
+3. Set up environment variables in `.env`:
 ```
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_WHATSAPP_NUMBER=your_whatsapp_number
-DATABASE_URL=sqlite:///rides.db
+TWILIO_ACCOUNT_SID=your_twilio_sid
+TWILIO_AUTH_TOKEN=your_twilio_token
+STRIPE_SECRET_KEY=your_stripe_key
 JWT_SECRET_KEY=your_jwt_secret
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
 
-## Usage
+## Development Setup
 
-### For Passengers
-Send a WhatsApp message to the service number in this format:
-```
-ride pickup_latitude,pickup_longitude to destination_latitude,destination_longitude
-```
-
-Example:
-```
-ride 40.7128,-74.0060 to 40.7589,-73.9851
+1. Install development dependencies:
+```bash
+pip install -r requirements-dev.txt
 ```
 
-### For Drivers
-1. Drivers need to be registered in the system first
-2. When a ride request comes in, drivers receive a notification
-3. To accept a ride, reply with:
-```
-accept [ride_id]
+2. Install pre-commit hooks:
+```bash
+pre-commit install
 ```
 
-## API Endpoints
+The project uses several tools to maintain code quality:
 
-### Authentication
-- POST `/api/register`: Register a new user
-  ```json
-  {
-    "phone_number": "+1234567890",
-    "password": "securepassword",
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-  ```
+- **Black**: Code formatting
+- **Flake8**: Code linting
+  - flake8-docstrings for docstring checks
+  - flake8-import-order for import ordering
+  - flake8-quotes for consistent quote usage
+- **MyPy**: Static type checking
+- **Pytest**: Testing framework with coverage reporting
 
-- POST `/api/login`: Login and get authentication token
-  ```json
-  {
-    "phone_number": "+1234567890",
-    "password": "securepassword"
-  }
-  ```
+### Running Tests
 
-### Webhooks
-- POST `/webhook`: Twilio WhatsApp webhook
-- POST `/webhook/stripe`: Stripe payment webhook
+```bash
+pytest
+```
 
-## Payment Flow
+### Code Quality Checks
 
-1. User requests a ride through WhatsApp
-2. System calculates fare based on distance
-3. When a driver accepts the ride, passenger receives a payment link
-4. After successful payment, both parties are notified
-5. Driver can proceed to pickup location
+The following checks run automatically on each commit:
 
-## Pricing
+1. Code formatting (black)
+2. Linting (flake8)
+3. Type checking (mypy)
+4. Unit tests (pytest)
 
-- Base fare: $5.00
-- Rate per kilometer: $1.50
+To manually run all checks:
+```bash
+pre-commit run --all-files
+```
 
-## Requirements
+### Configuration Files
 
-- Python 3.8+
-- Twilio Account
-- WhatsApp Business API access through Twilio
-- Internet connection for the server
-- Stripe Account
+Configuration files for development tools are located in the `admin/` directory:
+- `admin/.flake8`: Flake8 configuration
+- `admin/mypy.ini`: MyPy configuration
+- `admin/pytest.ini`: Pytest configuration
 
-## Note
+## Running the Application
 
-This is a basic implementation. For production use, consider adding:
-- Error handling
-- Rate limiting
-- Security features
+1. Start the server:
+```bash
+python -m whatsapp_ride_service
+```
+
+2. The service will be available at `http://localhost:5000`
+
+## API Documentation
+
+### Authentication Endpoints
+- POST `/auth/register`: Register a new user
+- POST `/auth/login`: Login and receive JWT token
+
+### User Endpoints
+- GET `/user/profile`: Get user profile
+- PUT `/user/profile`: Update user profile
+- GET `/user/rides`: Get user's ride history
+
+### Ride Endpoints
+- POST `/ride/request`: Request a new ride
+- GET `/ride/<ride_id>`: Get ride status
+- PUT `/ride/<ride_id>/complete`: Complete a ride
+- POST `/ride/<ride_id>/rate`: Rate a completed ride
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+   - Write meaningful commit messages
+   - Add tests for new features
+   - Update documentation as needed
+4. Run all checks (`pre-commit run --all-files`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

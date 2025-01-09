@@ -1,11 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from ..auth import UserManager, token_required
-from .. import db
 from sqlalchemy.exc import IntegrityError
 
-user_bp = Blueprint('user', __name__)
+bp = Blueprint('user', __name__, url_prefix='/user')
 
-@user_bp.route('/register', methods=['POST'])
+@bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     
@@ -14,7 +13,7 @@ def register():
         return jsonify({'error': 'Missing required fields'}), 400
     
     try:
-        user_manager = UserManager(db.session)
+        user_manager = UserManager(current_app.db_session)
         user = user_manager.create_user(
             name=data['name'],
             email=data['email'],
@@ -37,13 +36,13 @@ def register():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except IntegrityError:
-        db.session.rollback()
+        current_app.db_session.rollback()
         return jsonify({'error': 'User already exists'}), 409
     except Exception as e:
-        db.session.rollback()
+        current_app.db_session.rollback()
         return jsonify({'error': 'An error occurred'}), 500
 
-@user_bp.route('/login', methods=['POST'])
+@bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     
@@ -51,7 +50,7 @@ def login():
         return jsonify({'error': 'Missing phone number or password'}), 400
     
     try:
-        user_manager = UserManager(db.session)
+        user_manager = UserManager(current_app.db_session)
         user = user_manager.authenticate_user(
             phone_number=data['phone_number'],
             password=data['password']
@@ -74,65 +73,57 @@ def login():
     except Exception as e:
         return jsonify({'error': 'An error occurred'}), 500
 
-@user_bp.route('/profile', methods=['GET'])
+@bp.route('/profile', methods=['GET'])
 @token_required
 def get_profile(current_user):
     return jsonify({
-        'user': {
-            'id': current_user.id,
-            'name': current_user.name,
-            'email': current_user.email,
-            'phone_number': current_user.phone_number
-        }
+        'id': current_user.id,
+        'name': current_user.name,
+        'email': current_user.email,
+        'phone_number': current_user.phone_number
     })
 
-@user_bp.route('/profile', methods=['PUT'])
+@bp.route('/profile', methods=['PUT'])
 @token_required
 def update_profile(current_user):
     data = request.get_json()
+    user_manager = UserManager(current_app.db_session)
     
     try:
-        user_manager = UserManager(db.session)
-        user = user_manager.update_user_profile(
-            user_id=current_user.id,
+        user = user_manager.update_user(
+            current_user.id,
             name=data.get('name'),
-            email=data.get('email')
+            email=data.get('email'),
+            phone_number=data.get('phone_number')
         )
         
         return jsonify({
-            'message': 'Profile updated successfully',
-            'user': {
-                'id': user.id,
-                'name': user.name,
-                'email': user.email,
-                'phone_number': user.phone_number
-            }
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'phone_number': user.phone_number
         })
         
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': 'An error occurred'}), 500
+    except IntegrityError:
+        current_app.db_session.rollback()
+        return jsonify({'error': 'Email or phone number already in use'}), 409
 
-@user_bp.route('/change-password', methods=['POST'])
+@bp.route('/password', methods=['PUT'])
 @token_required
 def change_password(current_user):
     data = request.get_json()
-    
-    if not data or not data.get('old_password') or not data.get('new_password'):
-        return jsonify({'error': 'Missing old or new password'}), 400
+    user_manager = UserManager(current_app.db_session)
     
     try:
-        user_manager = UserManager(db.session)
-        user_manager.change_password(
-            user_id=current_user.id,
-            old_password=data['old_password'],
-            new_password=data['new_password']
-        )
+        if not user_manager.verify_password(current_user, data['current_password']):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+            
+        user_manager.update_password(current_user, data['new_password'])
+        return jsonify({'message': 'Password updated successfully'})
         
-        return jsonify({'message': 'Password changed successfully'})
-        
+    except KeyError:
+        return jsonify({'error': 'Missing required fields'}), 400
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': 'An error occurred'}), 500

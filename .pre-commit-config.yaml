@@ -1,0 +1,52 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: debug-statements
+
+-   repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+    -   id: black
+        language_version: python3
+
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+    -   id: flake8
+        additional_dependencies: [
+            'flake8-docstrings',
+            'flake8-import-order',
+            'flake8-quotes'
+        ]
+        args: [--config=admin/.flake8]
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+    -   id: mypy
+        additional_dependencies: [
+            'types-Flask',
+            'types-requests',
+            'types-PyYAML',
+            'types-python-dateutil',
+            'types-setuptools',
+            'types-SQLAlchemy',
+            'types-PyJWT',
+            'types-cryptography'
+        ]
+        args: [--config-file=admin/mypy.ini]
+
+-   repo: local
+    hooks:
+    -   id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [-c, admin/pytest.ini]
